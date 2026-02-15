@@ -1,3 +1,5 @@
+"""Cyberpunk narrative milestones for the Vim Masterpiece game."""
+
 MILESTONE_1 = r"""
 [bold #7aa2f7]SYSTEM REBOOT...[/]
 [#c0caf5]You are a VIM-RUNNER.[/]

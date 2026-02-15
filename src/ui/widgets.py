@@ -6,12 +6,13 @@ from src.data.models import Point
 
 class VimMap(Static):
     """Luxury map renderer with character-specific styling and Aura support."""
-    def render_map(self, data: List[List[str]], player_pos: Point, aura_active: bool):
+    def render_map(self, map_data: List[List[str]], player_position: Point, aura_active: bool):
+        """Renders the game map with colors and player positioning."""
         rows = []
-        for y, r in enumerate(data):
+        for row_index, row in enumerate(map_data):
             row_str = ""
-            for x, char in enumerate(r):
-                is_player = (x == player_pos.x and y == player_pos.y)
+            for col_index, char in enumerate(row):
+                is_player = (col_index == player_position.x and row_index == player_position.y)
                 
                 if is_player:
                     style = "bold #7aa2f7 on #2ac3de" if aura_active else "bold #7aa2f7"
@@ -55,16 +56,18 @@ class NarrativeOverlay(Static):
         self.styles.display = "none"
 
 class StatsDisplay(Static):
-    def update_stats(self, level, hp, strokes, par, mode, registers):
-        content = f"[bold #7aa2f7]LEVEL {level}[/]\n"
-        content += f"[#c0caf5]HP:[/] [bold #f7768e]{hp}[/]\n"
-        content += f"[#c0caf5]MODE:[/] [bold #9ece6a]{mode}[/]\n\n"
+    """Displays player statistics and register contents."""
+    def update_stats(self, level_num: int, hit_points: int, strokes: int, par_keystrokes: int, game_mode: str, registers: Dict[str, str]):
+        """Updates the visual statistics display."""
+        content = f"[bold #7aa2f7]LEVEL {level_num}[/]\n"
+        content += f"[#c0caf5]HP:[/] [bold #f7768e]{hit_points}[/]\n"
+        content += f"[#c0caf5]MODE:[/] [bold #9ece6a]{game_mode}[/]\n\n"
         content += f"[bold #bb9af7]REGISTERS[/]\n"
-        for k, v in registers.items():
-            content += f"[#565f89]\"{k}:[/] {v}\n"
+        for key, value in registers.items():
+            content += f"[#565f89]\"{key}:[/] {value}\n"
         content += f"\n[bold #bb9af7]VIM GOLF[/]\n"
         content += f"[#c0caf5]STROKES:[/] {strokes}\n"
-        content += f"[#c0caf5]PAR:[/] {par}"
+        content += f"[#c0caf5]PAR:[/] {par_keystrokes}"
         self.update(content)
 
 class CommandBar(Label):

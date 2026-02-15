@@ -3,6 +3,7 @@ from typing import List, Tuple, Dict, Optional, Set
 from enum import Enum, auto
 
 class GameMode(Enum):
+    """Supported Vim game modes."""
     NORMAL = auto()
     INSERT = auto()
     VISUAL = auto()
@@ -10,6 +11,7 @@ class GameMode(Enum):
     COMMAND = auto()
 
 class EntityType(Enum):
+    """Types of entities present in the game world."""
     PLAYER = auto()
     ENEMY = auto()
     RUBBLE = auto()
@@ -22,14 +24,16 @@ class EntityType(Enum):
 
 @dataclass(frozen=True)
 class Point:
+    """A point on the 2D game grid."""
     x: int
     y: int
 
 @dataclass
 class Entity:
+    """A game entity with a name, symbol, and position."""
     name: str
     symbol: str
-    pos: Point
+    position: Point
     hp: int = 1
     max_hp: int = 1
     entity_type: EntityType = EntityType.ENEMY
@@ -38,6 +42,7 @@ class Entity:
 
 @dataclass
 class LevelConfig:
+    """Configuration for a game level."""
     num: int
     name: str
     instructions: str

@@ -54,6 +54,7 @@ class VimMasterpiece(App):
         yield Footer()
 
     def on_mount(self) -> None:
+        """Called when the application is mounted. Initializes game components."""
         self.engine = GameEngine()
         self.parser = VimParser(self.on_mode_change, self.on_action)
         self.scoring = ScoringEngine()
@@ -61,13 +62,14 @@ class VimMasterpiece(App):
         self.load_level()
 
     def load_level(self):
-        idx = self.engine.current_level_idx
-        if idx < len(LEVELS):
-            if idx == 0: self.show_narrative(MILESTONE_1)
-            elif idx == 9: self.show_narrative(MILESTONE_10)
-            elif idx == 29: self.show_narrative(MILESTONE_30)
+        """Loads the current level and shows narrative milestones."""
+        level_index = self.engine.current_level_index
+        if level_index < len(LEVELS):
+            if level_index == 0: self.show_narrative(MILESTONE_1)
+            elif level_index == 9: self.show_narrative(MILESTONE_10)
+            elif level_index == 29: self.show_narrative(MILESTONE_30)
 
-            self.engine.load_level(LEVELS[idx])
+            self.engine.load_level(LEVELS[level_index])
             self.update_ui()
         else:
             self.show_narrative(MILESTONE_30)
@@ -82,15 +84,25 @@ class VimMasterpiece(App):
         self.update_ui()
 
     def on_action(self, action: str, params: dict):
+        """Processes actions emitted by the Vim parser."""
         self.engine.keystroke_count += 1
         
         if action == "move":
-            self.engine.move_player(
-                1 if params["motion"] == "l" else -1 if params["motion"] == "h" else 3 if params["motion"] == "w" else -3 if params["motion"] == "b" else 0,
-                1 if params["motion"] == "j" else -1 if params["motion"] == "k" else 0,
-                params.get("count", 1)
-            )
-        elif action == "delete_line" or action == "delete_word" or action == "delete_char":
+            motion = params["motion"]
+            count = params.get("count", 1)
+            
+            # Translate Vim motions to engine vectors
+            dx, dy = 0, 0
+            if motion == "l": dx = 1
+            elif motion == "h": dx = -1
+            elif motion == "j": dy = 1
+            elif motion == "k": dy = -1
+            elif motion == "w": dx = 3
+            elif motion == "b": dx = -3
+            
+            self.engine.move_player(dx, dy, count)
+            
+        elif action in ["delete_line", "delete_word", "delete_char"]:
             self.engine.perform_action("delete")
         elif action == "yank":
             self.engine.perform_action("yank", {"reg": params["reg"]})
@@ -101,7 +113,7 @@ class VimMasterpiece(App):
         
         if self.engine.level_complete:
             self.scoring.save_best(self.engine.current_level.num, self.engine.keystroke_count)
-            self.engine.current_level_idx += 1
+            self.engine.current_level_index += 1
             self.load_level()
         
         self.update_ui()
@@ -123,9 +135,10 @@ class VimMasterpiece(App):
         event.stop()
 
     def update_ui(self):
+        """Updates all UI components based on the current engine state."""
         self.query_one("#map").render_map(
             self.engine.get_render_data(), 
-            self.engine.player.pos,
+            self.engine.player.position,
             self.engine.aura_active
         )
         self.query_one("#log").update("\n".join(self.engine.messages))

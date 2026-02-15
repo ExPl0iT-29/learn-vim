@@ -2,12 +2,17 @@ from typing import Tuple, Optional, List, Dict, Callable
 from src.data.models import GameMode
 
 class VimParser:
+    """
+    Parses keyboard input and translates it into Vim-like commands and actions.
+    Maintains internal state for counts, operators, and registers.
+    """
     def __init__(self, mode_change_callback: Callable, action_callback: Callable):
         self.mode_change_callback = mode_change_callback
         self.action_callback = action_callback
         self.reset()
 
     def handle_key(self, key: str, mode: GameMode) -> str:
+        """Processes a single keypress based on the current game mode."""
         if key == "escape":
             self.reset()
             self.mode_change_callback(GameMode.NORMAL)
@@ -83,6 +88,7 @@ class VimParser:
         return self.format_buffer()
 
     def reset(self):
+        """Resets the parser state to its default values."""
         self.buffer = ""
         self.count_str = ""
         self.operator = None
@@ -91,8 +97,11 @@ class VimParser:
         self.waiting_for_reg = False
 
     def format_buffer(self) -> str:
-        res = ""
-        if self.active_register: res += f'"{self.active_register}'
-        res += self.count_str
-        if self.operator: res += self.operator
-        return res
+        """Returns a string representation of the current parser buffer for display."""
+        formatted_buffer = ""
+        if self.active_register: 
+            formatted_buffer += f'"{self.active_register}'
+        formatted_buffer += self.count_str
+        if self.operator: 
+            formatted_buffer += self.operator
+        return formatted_buffer
