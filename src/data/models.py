@@ -50,4 +50,13 @@ class LevelConfig:
     unlocked_commands: Set[str] = field(default_factory=set)
     par_keystrokes: int = 0
     objective: str = "reach_exit" 
-    narrative_intro: Optional[str] = None # New: Cyberpunk narrative
+    narrative_intro: Optional[str] = None # Cyberpunk narrative
+    hint: str = "" # Short contextual hint
+    detailed_help: str = "" # Full tutorial text (triggered by ?)
+@dataclass
+class Effect:
+    """A temporary visual effect on the map (particles)."""
+    position: Point
+    char: str
+    color: str
+    lifespan: int # Number of turns before it disappears

@@ -1,7 +1,8 @@
 import random
 import re
+import copy
 from typing import List, Tuple, Dict, Optional, Set
-from src.data.models import Entity, EntityType, Point, LevelConfig, GameMode
+from src.data.models import Entity, EntityType, Point, LevelConfig, GameMode, Effect
 
 class GameEngine:
     """
@@ -21,6 +22,9 @@ class GameEngine:
         self.registers: Dict[str, str] = {} # Key-value pairs for yank/put
         self.aura_active = False # Vim Aura
         self.last_move_efficient = False
+        self.history_stack = []
+        self.visual_anchor: Optional[Point] = None
+        self.active_effects: List[Effect] = []
 
     def load_level(self, config: LevelConfig):
         """
@@ -37,6 +41,9 @@ class GameEngine:
         self.keystroke_count = 0
         self.mode = GameMode.NORMAL
         self.aura_active = False
+        self.history_stack = []
+        self.visual_anchor = None
+        self.active_effects = []
         
         for y, row in enumerate(self.map_data):
             for x, char in enumerate(row):
@@ -80,7 +87,16 @@ class GameEngine:
                 if target.entity_type == EntityType.EXIT:
                     self.complete_level()
                     break
-                elif target.entity_type in [EntityType.ENEMY, EntityType.RUBBLE, EntityType.LOCK, EntityType.BOSS]:
+                elif target.entity_type == EntityType.LOCK:
+                    register_needed = target.metadata["reg"]
+                    self.add_message(f"SECURITY ALERT: Lock {register_needed.upper()} active.")
+                    self.add_message(f"Hint: Yank Key {register_needed} into register '{register_needed}' first.")
+                    break
+                elif target.entity_type == EntityType.BOSS:
+                    self.add_message(f"WARNING: {target.name} detected.")
+                    self.add_message("standard attacks are useless. Use [bold]:s/target/replace/g[/].")
+                    break
+                elif target.entity_type in [EntityType.ENEMY, EntityType.RUBBLE]:
                     self.add_message(f"Path blocked by: {target.name}")
                     break
             
@@ -98,6 +114,73 @@ class GameEngine:
             self.handle_put(params)
         elif action == "regex_attack":
             self.handle_regex_attack(params["command"])
+        elif action == "delete":
+            self.handle_delete()
+
+    def set_visual_anchor(self):
+        """Sets the anchor point for visual mode selection."""
+        self.visual_anchor = Point(self.player.position.x, self.player.position.y)
+
+    def save_state(self):
+        """Saves current state for undo functionality."""
+        state = {
+            "player_pos": Point(self.player.position.x, self.player.position.y),
+            "player_hp": self.player.hp,
+            "enemies": copy.deepcopy(self.enemies),
+            "interactables": copy.deepcopy(self.interactables),
+            "map_data": copy.deepcopy(self.map_data),
+            "registers": copy.deepcopy(self.registers),
+            "keystroke_count": self.keystroke_count,
+            "messages": list(self.messages),
+            "level_complete": self.level_complete
+        }
+        self.history_stack.append(state)
+        if len(self.history_stack) > 20: 
+            self.history_stack.pop(0)
+
+    def undo(self):
+        """Reverts the game state to the previous turn."""
+        if not self.history_stack:
+            self.add_message("Already at oldest change.")
+            return
+
+        state = self.history_stack.pop()
+        self.player.position = state["player_pos"]
+        self.player.hp = state["player_hp"]
+        self.enemies = state["enemies"]
+        self.interactables = state["interactables"]
+        self.map_data = state["map_data"]
+        self.registers = state["registers"]
+        self.keystroke_count = state["keystroke_count"]
+        self.messages = state["messages"]
+        self.level_complete = state["level_complete"]
+        self.add_message("Undid previous action.")
+
+    def handle_delete(self):
+        """Handles deletion, weaponizing Visual mode selection."""
+        if self.mode == GameMode.VISUAL and self.visual_anchor:
+            min_x = min(self.player.position.x, self.visual_anchor.x)
+            max_x = max(self.player.position.x, self.visual_anchor.x)
+            min_y = min(self.player.position.y, self.visual_anchor.y)
+            max_y = max(self.player.position.y, self.visual_anchor.y)
+
+            entities_to_remove = []
+            for entity in self.enemies + self.interactables:
+                if min_x <= entity.position.x <= max_x and min_y <= entity.position.y <= max_y:
+                    if entity.entity_type not in [EntityType.EXIT, EntityType.PLAYER]:
+                        entities_to_remove.append(entity)
+            
+            if not entities_to_remove:
+                self.add_message("Nothing selected to delete.")
+            else:
+                for e in entities_to_remove:
+                    if e in self.enemies: self.enemies.remove(e)
+                    if e in self.interactables: self.interactables.remove(e)
+                    self.spawn_explosion(e.position, e.entity_type)
+                self.add_message(f"Visual strike destroyed {len(entities_to_remove)} targets!")
+            
+            self.mode = GameMode.NORMAL
+            self.visual_anchor = None
 
     def handle_yank(self, params: Dict):
         """Handles yanking keys from the environment into registers."""
@@ -164,8 +247,18 @@ class GameEngine:
         self.add_message(f"LINK DAMAGE: {target.name} suffered {damage} damage.")
         if target.hp <= 0:
             self.add_message(f"ERASED: {target.name}")
+            self.spawn_explosion(target.position, target.entity_type)
             if target in self.enemies: self.enemies.remove(target)
             elif target in self.interactables: self.interactables.remove(target)
+
+    def spawn_explosion(self, position: Point, entity_type: EntityType):
+        """Spawns particle effects at the entity's position."""
+        color = "#f7768e" if entity_type in [EntityType.ENEMY, EntityType.BOSS] else "#c0caf5"
+        for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+            nx, ny = position.x + dx, position.y + dy
+            if 0 <= nx < self.width and 0 <= ny < self.height:
+                if self.map_data[ny][nx] == ".":
+                    self.active_effects.append(Effect(Point(nx, ny), random.choice(["*", "%", "x"]), color, 2))
 
     def add_message(self, message: str):
         """Adds a message to the game log, maintaining a maximum size."""
@@ -178,7 +271,16 @@ class GameEngine:
 
     def get_render_data(self) -> List[List[str]]:
         """Prepares a character matrix of the map for rendering."""
+        # Decrement effect lifespans
+        self.active_effects = [e for e in self.active_effects if e.lifespan > 0]
+        for e in self.active_effects: e.lifespan -= 1
+
         render_map = [row[:] for row in self.map_data]
+        
+        # Draw effects first (under entities)
+        for effect in self.active_effects:
+            render_map[effect.position.y][effect.position.x] = effect.char
+
         for entity in self.interactables + self.enemies:
             render_map[entity.position.y][entity.position.x] = entity.symbol
         render_map[self.player.position.y][self.player.position.x] = self.player.symbol

@@ -52,7 +52,10 @@ class VimParser:
         count = int(self.count_str) if self.count_str else 1
         
         # Action Operators
-        if key == "y":
+        if key == "u":
+            self.action_callback("undo", {})
+            self.reset()
+        elif key == "y":
             self.action_callback("yank", {"reg": self.active_register or '"', "count": count})
             self.reset()
         elif key == "p":
