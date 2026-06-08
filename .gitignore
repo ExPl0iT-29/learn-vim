@@ -63,6 +63,9 @@ venv.bak/
 vimgame_scores.json
 .vimgamerc
 
+# Planning docs (not for public repo)
+.planning/
+
 # Local IDE/OS
 .vscode/
 .idea/

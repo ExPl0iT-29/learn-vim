@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vim-masterpiece"
+version = "1.0.0"
+description = "A 30-level terminal RPG for learning Vim motions."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+authors = [
+    { name = "Tushar Satpute", email = "tusharsatpute68@gmail.com" }
+]
+keywords = ["vim", "game", "terminal", "tui", "learning"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Environment :: Console",
+    "Topic :: Games/Entertainment",
+]
+dependencies = [
+    "textual>=0.50.0",
+    "playsound3>=3.0.0",
+    "platformdirs>=4.0.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/ExPl0iT-29/learn-vim"
+"Bug Tracker" = "https://github.com/ExPl0iT-29/learn-vim/issues"
+
+[project.scripts]
+vim-masterpiece = "vim_masterpiece.__main__:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+"vim_masterpiece.assets" = ["*.mp3", "*.wav"]

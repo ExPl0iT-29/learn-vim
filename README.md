@@ -1,74 +1,111 @@
-# Vim Masterpiece: Ultimate Edition 🛡️⌨️
+# vim-masterpiece
 
-> ### **"Master the Keystroke. Escape the Bloat."**
+A terminal game for learning Vim. 30 levels, each teaching one or more motions through a small puzzle map. Built with [Textual](https://textual.textualize.io/) and Python.
 
-**Vim Masterpiece** is an immersive, 30-level terminal RPG designed to transform anyone from a Vim novice into a command-line ninja. Built with Python and the Textual framework, it blends professional-grade educational logic with high-fidelity cyberpunk aesthetics.
-
----
-
-## 🚀 The 30-Level Mastery Journey
-
-The game features a structured curriculum that teaches you Vim step-by-step through a 30-level infiltration mission.
-
-| Phase | Levels | Focus |
-| :--- | :--- | :--- |
-| **I: The Foundation** | 1 - 5 | `hjkl` basics, word jumps (`w`/`b`), and line boundaries (`0`/`$`). |
-| **II: The Hunter** | 6 - 10 | Precise targeted jumps (`f`/`t`) and the first **Regex Boss** encounter. |
-| **III: The Weaver** | 11 - 20 | **Visual Mode** selection, **Registers** (Yank/Put), and **Insert Mode** tasks. |
-| **IV: The Master** | 21 - 30 | **Macros** (`q`), **Text Objects** (`iw`/`ip`), and efficiency optimization. |
+Runs on Windows, macOS, and Linux.
 
 ---
 
-## 🎮 Ultimate Edition Features
+## Why
 
-### 🛡️ Vim Aura
-Play efficiently to trigger your **Aura**. Using counts (e.g., `5j`) or search motions instead of repetitive keys will cause your character to glow with a pulsating blue energy.
-
-### 🍱 Register-Based Inventory
-Items aren't just "picked up"—they are **Yanked** (`"ay`) into specific Vim registers. You must keep the right keys in the right registers and **Put** (`p`) them into locks to progress.
-
-### 👾 REGEX Boss Combat
-Encounter "Corrupted Binary" bosses. They are immune to standard attacks and can only be purged by entering command mode and typing precise search-and-replace strings like `:%s/virus/data/g`.
-
-### 🔊 Tactile Soundscapes
-Visual ASCII **[CLACK]** and **[TICK]** bubbles appear on-screen as you type, providing an satisfying arcade-like response to your command sequences.
+I kept forgetting Vim motions because I only used them when editing. This forces repetition in a context where getting it wrong has a visible cost — you move the wrong way, you take longer, you see your stroke count climb. The game loop is minimal: reach the exit in as few keystrokes as possible.
 
 ---
 
-## 🎨 Professional Aesthetics
-The game features a custom theme inspired by **Tokyonight**, utilizing Sky Blue, Vibrant Purple, and Emerald accents to create a world-class terminal environment.
+## Install
 
----
-
-## 🛠️ Installation & Play
-
-### Requirements
-- Python 3.8+
-- [Textual](https://www.textualize.io/) library
-
-### Quick Start
 ```bash
-# Clone the repository
+pipx install vim-masterpiece
+vim-masterpiece
+```
+
+Or with uv:
+
+```bash
+uv tool install vim-masterpiece
+```
+
+Requires Python 3.10+.
+
+**Dev install:**
+
+```bash
 git clone https://github.com/ExPl0iT-29/learn-vim.git
 cd learn-vim
-
-# Install dependencies
-pip install textual
-
-# Launch the Masterpiece
-python -m src.app
+pip install -e .
+vim-masterpiece
 ```
 
 ---
 
-## 🏆 Scoring (Vim Golf)
-Every level tracks your keystroke efficiency. Try to beat the **Par** score to earn an **S-Rank** and see your progress on the local persistent leaderboard.
+## How it works
+
+Levels 1–10 are hand-written maps that introduce one concept each. Levels 11–30 are procedurally generated with increasing density of enemies, locks, and puzzle elements.
+
+Each level has a par keystroke count. Your best scores are stored in your OS data directory (`~/.local/share/vim-masterpiece` on Linux, `%LOCALAPPDATA%\vim-masterpiece` on Windows).
+
+The Vim parser is a small state machine that handles counts (`3j`), operators (`d`), registers (`"ay`), and mode switching. It does not use any Vim library — the motions that matter for the game are implemented directly.
 
 ---
 
-## 👤 Author
-- **ExPl0iT-29** (tusharsatpute68@gmail.com)
+## Levels
+
+| Levels | Focus |
+| :--- | :--- |
+| 1–5 | `hjkl`, word jumps (`w`/`b`), line boundaries (`0`/`$`) |
+| 6–10 | Registers (`"ay`/`"ap`), `f`/`t` jumps, regex boss combat |
+| 11–30 | Procedurally generated maps, escalating density |
 
 ---
 
-*“Life is too short for GUI editors. May your keystrokes be few and your buffers be clean.”*
+## Controls
+
+| Key | Action |
+|-----|--------|
+| `h j k l` | Move |
+| `w` / `b` | Jump by word distance |
+| `3j`, `5l` | Count prefix |
+| `"ay` | Yank nearby key into register `a` |
+| `"ap` | Put register `a` into nearby lock |
+| `v` | Visual mode |
+| `d` (in Visual) | Delete selection |
+| `u` | Undo |
+| `:s/x/y/g` + Enter | Attack regex boss |
+| `T` | Cycle theme (Tokyonight / Dracula / Gruvbox) |
+| `?` | Level hint |
+| `Escape` | Normal mode |
+
+---
+
+## Scoring
+
+Each level has a par. Your rating:
+
+| Rating | Strokes |
+|--------|---------|
+| S | ≤ par |
+| A | ≤ par × 1.5 |
+| B | ≤ par × 2.5 |
+| C | anything else |
+
+---
+
+## Technical notes
+
+- Audio uses `playsound3` in a Textual worker thread. If no audio backend is available the game runs silently.
+- Textual 7+ sends `event.key = "colon"` for `:` and `"question_mark"` for `?`. The key handler normalises via `event.character` before dispatching.
+- Scores and config are stored via `platformdirs` so they persist regardless of working directory.
+
+---
+
+## Limitations
+
+- The Vim parser only covers the motions used in the game. It is not a general Vim emulator.
+- Audio files (`clack.mp3`, `tick.mp3`) are not included in the repo. The game works without them.
+- No multiplayer, no online scores, no Neovim-specific features.
+
+---
+
+## License
+
+MIT — Tushar Satpute
